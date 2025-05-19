@@ -27,7 +27,7 @@
 #define CHECK(call, msg)                                                       \
   do {                                                                         \
     errno = 0;                                                                 \
-    if ((call) == -1) {                                                        \
+    if (call == -1) {                                                        \
       perror("[!] " msg);                                                      \
       exit(EXIT_FAILURE);                                                      \
     }                                                                          \
@@ -104,7 +104,7 @@ void write_mem(pid_t target_pid, long addr, char *buffer, int len) {
     chunk.val = ptrace(PTRACE_PEEKDATA, target_pid, addr + i * sizeof(long), NULL);
 
     // Copier uniquement la partie à modifier
-    memcpy(chunk.bytes, buffer + i * sizeof(long), remaining);
+    memcpy(chunk.bytes, buffer + i * sizeof(long), rem);
 
     // Écrire le mot modifié complet
     ptrace(PTRACE_POKEDATA, target_pid, addr + i * sizeof(long), chunk.val);
