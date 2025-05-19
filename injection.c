@@ -66,8 +66,7 @@ void read_mem(pid_t pid, long addr, char *buffer, int len) {
 
   // Lire les octets restants (s'il y a lieu)
   if (rem) {
-    chunk.val =
-        ptrace(PTRACE_PEEKDATA, pid, addr + chunks * sizeof(long), NULL);
+    chunk.val = ptrace(PTRACE_PEEKDATA, pid, addr + chunks * sizeof(long), NULL);
     memcpy(buffer + chunks * sizeof(long), chunk.bytes, rem);
   }
 }
