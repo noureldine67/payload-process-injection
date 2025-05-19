@@ -65,7 +65,7 @@ void read_mem(pid_t pid, long addr, char *buffer, int len) {
   }
 
   // Lire les octets restants (s'il y a lieu)
-  if (rem > 0) {
+  if (rem) {
     chunk.val =
         ptrace(PTRACE_PEEKDATA, pid, addr + chunks * sizeof(long), NULL);
     memcpy(buffer + chunks * sizeof(long), chunk.bytes, rem);
@@ -84,21 +84,23 @@ void read_mem(pid_t pid, long addr, char *buffer, int len) {
  * @param len Taille en octets des données à écrire.
  */
 void write_mem(pid_t target_pid, long addr, char *buffer, int len) {
-  union data_chunk {
+  union {
     long val;
     char bytes[sizeof(long)];
   } chunk;
   int i;
 
+  int chunks = len / sizeof(long); // Nombre de blocs complets
+  int rem = len % sizeof(long);    // Reste éventuel (moins de 8 octets)
+
   // Écrire les mots complets
-  for (i = 0; i < len / sizeof(long); i++) {
+  for (i = 0; i < chunks; i++) {
     memcpy(chunk.bytes, buffer + i * sizeof(long), sizeof(long));
     ptrace(PTRACE_POKEDATA, target_pid, addr + i * sizeof(long), chunk.val);
   }
 
-  // Gérer les octets restants (partiels)
-  int remaining = len % sizeof(long);
-  if (remaining) {
+  // Lire les octets restants (s'il y a lieu)
+  if (rem) {
     // Lire le mot original pour préserver les octets non modifiés
     chunk.val = ptrace(PTRACE_PEEKDATA, target_pid, addr + i * sizeof(long), NULL);
 
@@ -123,7 +125,7 @@ void write_mem(pid_t target_pid, long addr, char *buffer, int len) {
  * 7. Détacher
  */
 int main(int argc, char *argv[]) {
-  if (argc < 3) {
+  if (argc != 3) {
     fprintf(stderr, COLOR_RED "Usage: %s <pid> <raw shellcode>\n" COLOR_RESET, argv[0]);
     fprintf(stderr, COLOR_RED "Exemple: %s 1234 \"\\x48\\x31\\xff\\x6a\\x69...\"\n" COLOR_RESET,
             argv[0]);
@@ -136,7 +138,7 @@ int main(int argc, char *argv[]) {
       strlen(payload); // On s'attend à du shellcode brut (déjà décodé)
 
   // Allocation mémoire pour sauvegarder le code original à l'adresse RIP
-  char *original_code = malloc(payload_len);
+  char *original_code = malloc(payload_len * sizeof(char));
   if (!original_code) {
     perror("malloc");
     return EXIT_FAILURE;
